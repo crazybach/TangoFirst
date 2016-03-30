@@ -289,13 +289,12 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
     /// <param name="plane">Filled in with a model of the plane in Unity world space.</param>
     public bool FindPlane(Camera cam, Vector2 pos, out Vector3 planeCenter, out Plane plane)
     {
-        //take care, FitPlaneModelNearClick need a inverse of color camera transform matrix with respect to UnityWorld
-        //so colorCameraTUnityWorld = B-1 * A-1 = (AB)-1 = UnityWorldTColorCamera.inverse
+        // m_uwTcc-1 = (m_uwTuc*m_ucTcc)-1 = m_ucTcc-1 * m_uwTuc-1 = m_ccTuc * cam.worldtolacal
         //Matrix4x4 colorCameraTUnityWorld = m_colorCameraTUnityCamera * cam.transform.worldToLocalMatrix;
-        Matrix4x4 UnityWorldTUnityCamera = Matrix4x4.TRS(cam.transform.position, cam.transform.rotation, Vector3.one);
-        Matrix4x4 UnityWorldTColorCamera = UnityWorldTUnityCamera * Matrix4x4.Inverse(m_colorCameraTUnityCamera);
-        UnityWorldTColorCamera = Matrix4x4.Inverse(UnityWorldTColorCamera);
-
+        Matrix4x4 m_uwTuc = Matrix4x4.TRS(cam.transform.position, cam.transform.rotation, Vector3.one);
+        Matrix4x4 m_ucTcc = Matrix4x4.Inverse(m_colorCameraTUnityCamera);
+        Matrix4x4 m_uwTcc = m_uwTuc * m_ucTcc;
+        Matrix4x4 m_ccTuw = Matrix4x4.Inverse(m_uwTcc);
 
         Vector2 normalizedPos = cam.ScreenToViewportPoint(pos);
 
@@ -308,7 +307,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
         }
 
         int returnValue = TangoSupport.FitPlaneModelNearClick(
-            m_points, m_pointsCount, m_depthTimestamp, m_colorCameraIntrinsics, ref UnityWorldTColorCamera, normalizedPos,
+            m_points, m_pointsCount, m_depthTimestamp, m_colorCameraIntrinsics, ref m_ccTuw, normalizedPos,
             out planeCenter, out plane);
 
         if (returnValue == Common.ErrorType.TANGO_SUCCESS)
