@@ -100,7 +100,9 @@ public class GameManager : MonoBehaviour, ITangoLifecycle, ITangoDepth {
             forward = Vector3.Cross(up, cam.transform.right);
         }
 
-        Instantiate(m_prefabMarker, planeCenter, Quaternion.LookRotation(forward, up));
+        Vector3 dropPos = planeCenter + plane.normal * 0.3f;
+
+        Instantiate(m_prefabMarker, dropPos, Quaternion.LookRotation(forward, up));
 
         WaitingCreateWorld = false;
     }
