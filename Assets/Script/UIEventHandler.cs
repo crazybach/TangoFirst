@@ -22,6 +22,6 @@ public class UIEventHandler : MonoBehaviour {
 
     // Event handler for button click event
     public void onButtonClickEvent(GameObject obj){
-        manager.CreateWorld();
+        manager.WaitingCreateWorld = true;
     }
 }
