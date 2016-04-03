@@ -17,15 +17,18 @@ public class FaceCamera : MonoBehaviour
     {
         if (Camera.main)
         {
-            FaceDirection(transform.position - Camera.main.transform.position);
+            FaceDirection(Camera.main.transform.position - transform.position);
         }
     }
 
     public void FaceDirection(Vector3 forwardDirection)
     {
+        
         if (forceCameraUp)
         {
+            Debug.Log("FaceDirection Called");
             transform.rotation = Quaternion.LookRotation(forwardDirection.normalized, Camera.main.transform.up) * Quaternion.Euler(rotationOffset);
+            //transform.Rotate(Camera.main.transform.up, 90);
         }
         else if (forceToWorldUp)
         {
@@ -36,5 +39,7 @@ public class FaceCamera : MonoBehaviour
         {
             transform.rotation = Quaternion.LookRotation(forwardDirection.normalized) * Quaternion.Euler(rotationOffset);
         }
+
+        
     }
 }
