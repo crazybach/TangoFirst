@@ -102,7 +102,8 @@ public class GameManager : MonoBehaviour, ITangoLifecycle, ITangoDepth {
 
         Vector3 dropPos = planeCenter + plane.normal * 0.3f;
 
-        Instantiate(m_prefabMarker, dropPos, Quaternion.LookRotation(forward, up));
+        GameObject newWorld = Instantiate(m_prefabMarker, dropPos, Quaternion.LookRotation(forward, up)) as GameObject;
+        newWorld.transform.localScale *= Random.Range(0.1f, 0.3f);
 
         WaitingCreateWorld = false;
     }
