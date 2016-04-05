@@ -42,7 +42,7 @@ Shader "Planets/Standard"
 				Blend [_SRCBLEND] [_DSTBLEND]
 
 				CGPROGRAM
-				#pragma target 5.0
+				#pragma target 3.0
 				#pragma fragmentoption ARB_precision_hint_fastest
 				#pragma multi_compile _ LOD_FADE_CROSSFADE
 
