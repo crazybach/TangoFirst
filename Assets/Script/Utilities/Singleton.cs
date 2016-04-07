@@ -3,7 +3,7 @@ namespace Utilities.Unity
 {
     using UnityEngine;
 
-    public class Singelton<T> : MonoBehaviour where T : Singelton<T>
+    public class Singleton<T> : MonoBehaviour where T : Singleton<T>
     {
         private static T _Instance;
 

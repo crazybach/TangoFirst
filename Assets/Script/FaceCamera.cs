@@ -26,7 +26,6 @@ public class FaceCamera : MonoBehaviour
         
         if (forceCameraUp)
         {
-            Debug.Log("FaceDirection Called");
             transform.rotation = Quaternion.LookRotation(forwardDirection.normalized, Camera.main.transform.up) * Quaternion.Euler(rotationOffset);
             //transform.Rotate(Camera.main.transform.up, 90);
         }
