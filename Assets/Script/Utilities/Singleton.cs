@@ -49,8 +49,8 @@ namespace Utilities.Unity
                     }
                     else
                     {
-                        Debug.Log("[Singleton] Using instance already created: " +
-                            _Instance.gameObject.name);
+                        //Debug.Log("[Singleton] Using instance already created: " +
+                        //    _Instance.gameObject.name);
                     }
 
                     return _Instance;

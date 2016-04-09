@@ -305,6 +305,13 @@ public class OrbitalTrail : MonoBehaviour
             currentDate += orbitStepTime;
         }
 
+        if (realPositions.Count == 0)
+        {
+            Debug.Log("No Planet Add");
+            return;
+        }
+
+
         realPositions.RemoveAt(realPositions.Count - 1);
         schematicPositions.RemoveAt(schematicPositions.Count - 1);
     }
