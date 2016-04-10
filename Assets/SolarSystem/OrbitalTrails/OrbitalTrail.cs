@@ -110,6 +110,8 @@ public class OrbitalTrail : MonoBehaviour
 
             registeredTrails.Add(origin);
 
+            Debug.Log(realPositions.Count);
+
             for (int i = 0; i < realPositions.Count; i++)
             {
                 var stepData = new OrbitDataPoint()
@@ -121,6 +123,8 @@ public class OrbitalTrail : MonoBehaviour
                     orbitEntryCount = (uint)schematicPositions.Count,
                     orbitIndex = (uint)(registeredTrails.Count - 1)
                 };
+
+                
 
                 orbitsData.Add(stepData);
             }
@@ -138,6 +142,8 @@ public class OrbitalTrail : MonoBehaviour
             {
                 orbitsBuffer = new ComputeBuffer(orbitsData.Count, OrbitDataPoint.size);
                 orbitsBuffer.SetData(orbitsData.ToArray());
+
+                Debug.Log(orbitsData.ToArray());
             }
         }
 
@@ -216,6 +222,8 @@ public class OrbitalTrail : MonoBehaviour
         {
             if (orbitsMaterial && orbitsBuffer != null && orbitsWorld && orbitsWorld.gameObject.activeInHierarchy)
             {
+
+
                 orbitsMaterial.SetPass(0);
                 orbitsMaterial.SetBuffer("_OrbitsData", orbitsBuffer);
                 orbitsMaterial.SetMatrix("_Orbits2World", orbitsWorld.transform.localToWorldMatrix);
@@ -296,8 +304,10 @@ public class OrbitalTrail : MonoBehaviour
             planet.Reality = 1;
             var realStepPosition = planet.CalculatePosition(currentDate);
 
+
             planet.Reality = 0;
             var schematicPosition = planet.CalculatePosition(currentDate);
+        
 
             realPositions.Add(realStepPosition);
             schematicPositions.Add(schematicPosition);
@@ -307,10 +317,8 @@ public class OrbitalTrail : MonoBehaviour
 
         if (realPositions.Count == 0)
         {
-            Debug.Log("No Planet Add");
             return;
         }
-
 
         realPositions.RemoveAt(realPositions.Count - 1);
         schematicPositions.RemoveAt(schematicPositions.Count - 1);
