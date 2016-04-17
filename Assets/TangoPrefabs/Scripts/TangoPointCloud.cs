@@ -289,13 +289,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
     /// <param name="plane">Filled in with a model of the plane in Unity world space.</param>
     public bool FindPlane(Camera cam, Vector2 pos, out Vector3 planeCenter, out Plane plane)
     {
-        // m_uwTcc-1 = (m_uwTuc*m_ucTcc)-1 = m_ucTcc-1 * m_uwTuc-1 = m_ccTuc * cam.worldtolacal
-        //Matrix4x4 colorCameraTUnityWorld = m_colorCameraTUnityCamera * cam.transform.worldToLocalMatrix;
-        Matrix4x4 m_uwTuc = Matrix4x4.TRS(cam.transform.position, cam.transform.rotation, Vector3.one);
-        Matrix4x4 m_ucTcc = Matrix4x4.Inverse(m_colorCameraTUnityCamera);
-        Matrix4x4 m_uwTcc = m_uwTuc * m_ucTcc;
-        Matrix4x4 m_ccTuw = Matrix4x4.Inverse(m_uwTcc);
-
+        Matrix4x4 colorCameraTUnityWorld = m_colorCameraTUnityCamera * cam.transform.worldToLocalMatrix;
         Vector2 normalizedPos = cam.ScreenToViewportPoint(pos);
 
         // If the camera has a TangoARScreen attached, it is not displaying the entire color camera image.  Correct
@@ -307,7 +301,7 @@ public class TangoPointCloud : MonoBehaviour, ITangoDepth
         }
 
         int returnValue = TangoSupport.FitPlaneModelNearClick(
-            m_points, m_pointsCount, m_depthTimestamp, m_colorCameraIntrinsics, ref m_ccTuw, normalizedPos,
+            m_points, m_pointsCount, m_depthTimestamp, m_colorCameraIntrinsics, ref colorCameraTUnityWorld, normalizedPos,
             out planeCenter, out plane);
 
         if (returnValue == Common.ErrorType.TANGO_SUCCESS)
