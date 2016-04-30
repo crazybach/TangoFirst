@@ -62,6 +62,8 @@ namespace Tango
         public bool m_autoConnectToService = false;
 
         public bool m_allowOutOfDateTangoAPI = false;
+        public GameObject m_testEnvironment;
+
         public bool m_enableMotionTracking = true;
         public bool m_motionTrackingAutoReset = true;
 
@@ -149,6 +151,7 @@ namespace Tango
             NONE = 0,
             MOTION_TRACKING = 0x1,
             AREA_LEARNING = 0x2,
+            SERVICE_BOUND = 0x4,
         }
 
         /// <summary>
@@ -451,6 +454,10 @@ namespace Tango
 
             _CheckTangoVersion();
 
+            // Setup configs.
+            m_tangoConfig = new TangoConfig(TangoEnums.TangoConfigType.TANGO_CONFIG_DEFAULT);
+            m_tangoRuntimeConfig = new TangoConfig(TangoEnums.TangoConfigType.TANGO_CONFIG_RUNTIME);
+
             if (m_enableVideoOverlay && m_videoOverlayUseTextureIdMethod)
             {
                 int yTextureWidth = 0;
@@ -615,6 +622,36 @@ namespace Tango
 
             numVertices = 0;
             numTriangles = 0;
+            return Tango3DReconstruction.Status.INVALID;
+        }
+
+        /// <summary>
+        /// Extract an array of <c>SignedDistanceVoxel</c> objects.
+        /// </summary>
+        /// <returns>
+        /// Returns Status.SUCCESS if the voxels are fully extracted and stared in the array.  In this case, numVoxels
+        /// will say how many voxels are used, the rest of the array is untouched.
+        /// 
+        /// Returns Status.INVALID if the array length does not exactly equal the number of voxels in a single grid
+        /// index.  By default, the number of voxels in a grid index is 16*16*16.
+        /// 
+        /// Returns Status.INVALID if some other error occurs.
+        /// </returns>
+        /// <param name="gridIndex">Grid index to extract.</param>
+        /// <param name="voxels">
+        /// On successful extraction this will get filled out with the signed distance voxels.
+        /// </param>
+        /// <param name="numVoxels">Number of voxels filled out.</param>
+        public Tango3DReconstruction.Status Tango3DRExtractSignedDistanceVoxel(
+            Tango3DReconstruction.GridIndex gridIndex, Tango3DReconstruction.APISignedDistanceVoxel[] voxels,
+            out int numVoxels)
+        {
+            if (m_tango3DReconstruction != null)
+            {
+                return m_tango3DReconstruction.ExtractSignedDistanceVoxel(gridIndex, voxels, out numVoxels);
+            }
+
+            numVoxels = 0;
             return Tango3DReconstruction.Status.INVALID;
         }
 
@@ -1101,7 +1138,7 @@ namespace Tango
             if (m_enableCloudADF)
             {
                 Debug.Log("Connect to Cloud Service.");
-                AndroidHelper.ConnectCloud();
+                AndroidHelper.BindTangoCloudService();
             }
 
             // Check if the UUID passed in was actually used.
@@ -1196,8 +1233,10 @@ namespace Tango
             if (m_enableCloudADF)
             {
                 Debug.Log("Disconnect from Cloud Service.");
-                AndroidHelper.DisconnectCloud();
+                AndroidHelper.UnbindTangoCloudService();
             }
+
+            AndroidHelper.UnbindTangoService();
         }
 
         /// <summary>
@@ -1289,14 +1328,49 @@ namespace Tango
         }
 
         /// <summary>
+        /// Delegate for when connected to the Tango Android service.
+        /// </summary>
+        /// <param name="binder">Binder for the service.</param>
+        private void _androidOnTangoServiceConnected(AndroidJavaObject binder)
+        {
+            Debug.Log("_androidOnTangoServiceConnected");
+
+            // By keeping this logic in C#, the client app can respond if this call fails.
+            int result = AndroidHelper.TangoSetBinder(binder);
+            if (result != Common.ErrorType.TANGO_SUCCESS)
+            {
+                Debug.Log("Error when calling TangoService_setBinder " + result);
+                _PermissionWasDenied();
+            }
+
+            _FlipBitAndCheckPermissions(PermissionsTypes.SERVICE_BOUND);
+        }
+
+        /// <summary>
+        /// Delegate for when disconnected from the Tango Android service.
+        /// </summary>
+        private void _androidOnTangoServiceDisconnected()
+        {
+            Debug.Log("_androidOnTangoServiceDisconnected");
+        }
+
+        /// <summary>
         /// Awake this instance.
         /// </summary>
         private void Awake()
         {
+            if (!AndroidHelper.LoadTangoLibrary())
+            {
+                Debug.Log("Unable to load Tango library.  Things may not work.");
+                return;
+            }
+
             AndroidHelper.RegisterPauseEvent(_androidOnPause);
             AndroidHelper.RegisterResumeEvent(_androidOnResume);
             AndroidHelper.RegisterOnActivityResultEvent(_androidOnActivityResult);
             AndroidHelper.RegisterOnScreenOrientationChangedEvent(_androidOnScreenOrientationChanged);
+            AndroidHelper.RegisterOnTangoServiceConnected(_androidOnTangoServiceConnected);
+            AndroidHelper.RegisterOnTangoServiceDisconnected(_androidOnTangoServiceDisconnected);
 
             // Setup listeners.
             m_tangoEventListener = new TangoEventListener();
@@ -1335,11 +1409,11 @@ namespace Tango
                 m_tango3DReconstruction.m_sendColorToUpdate = m_3drGenerateColor;
             }
 
-            // Setup configs.
-            m_tangoConfig = new TangoConfig(TangoEnums.TangoConfigType.TANGO_CONFIG_DEFAULT);
-            m_tangoRuntimeConfig = new TangoConfig(TangoEnums.TangoConfigType.TANGO_CONFIG_RUNTIME);
-
             TangoSupport.UpdateCurrentRotationIndex();
+
+#if UNITY_EDITOR
+            EmulatedEnvironmentRenderHelper.InitForEnvironment(m_testEnvironment);
+#endif
         }
 
         /// <summary>
@@ -1351,6 +1425,9 @@ namespace Tango
             {
                 m_requiredPermissions |= m_enableAreaDescriptions ? PermissionsTypes.AREA_LEARNING : PermissionsTypes.NONE;
             }
+
+            // It is always required to rebind to the service.
+            m_requiredPermissions |= PermissionsTypes.SERVICE_BOUND;
         }
 
         /// <summary>
@@ -1420,6 +1497,13 @@ namespace Tango
                     AndroidHelper.StartTangoPermissionsActivity(Common.TANGO_ADF_LOAD_SAVE_PERMISSIONS);
                 }
             }
+            else if ((m_requiredPermissions & PermissionsTypes.SERVICE_BOUND) == PermissionsTypes.SERVICE_BOUND)
+            {
+                if (!AndroidHelper.BindTangoService())
+                {
+                    _PermissionWasDenied();
+                }
+            }
         }
 
         /// <summary>
@@ -1465,9 +1549,18 @@ namespace Tango
                 m_sendPermissions = false;
             }
 
+            // Update any emulation
+#if UNITY_EDITOR
+            PoseProvider.UpdateTangoEmulation();
+            if (m_enableDepth && m_testEnvironment != null)
+            {
+                DepthProvider.UpdateTangoEmulation();
+            }
+#endif
+
             if (m_poseListener != null)
             {
-                m_poseListener.SendPoseIfAvailable();
+                m_poseListener.SendPoseIfAvailable(m_enableAreaDescriptions);
             }
 
             if (m_tangoEventListener != null)
