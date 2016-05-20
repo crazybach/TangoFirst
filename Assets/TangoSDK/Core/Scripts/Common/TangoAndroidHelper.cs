@@ -184,6 +184,9 @@ public partial class AndroidHelper
     /// <returns><c>true</c> if the package is installed; otherwise, <c>false</c>.</returns>
     public static bool IsTangoCorePresent()
     {
+#if UNITY_EDITOR
+        return true;
+#else
         AndroidJavaObject unityActivity = GetUnityActivity();
         
         if (unityActivity != null)
@@ -195,6 +198,7 @@ public partial class AndroidHelper
         }
         
         return false;
+#endif
     }
 
     /// <summary>

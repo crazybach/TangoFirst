@@ -643,7 +643,7 @@ namespace Tango
         /// </param>
         /// <param name="numVoxels">Number of voxels filled out.</param>
         public Tango3DReconstruction.Status Tango3DRExtractSignedDistanceVoxel(
-            Tango3DReconstruction.GridIndex gridIndex, Tango3DReconstruction.APISignedDistanceVoxel[] voxels,
+            Tango3DReconstruction.GridIndex gridIndex, Tango3DReconstruction.SignedDistanceVoxel[] voxels,
             out int numVoxels)
         {
             if (m_tango3DReconstruction != null)
@@ -1207,6 +1207,8 @@ namespace Tango
         /// </summary>
         private void _TangoDisconnect()
         {
+            AndroidHelper.UnbindTangoService();
+
             if (!m_isServiceConnected)
             {
                 Debug.Log(CLASS_NAME + ".Disconnect() Not disconnecting from Tango Service "
@@ -1235,8 +1237,6 @@ namespace Tango
                 Debug.Log("Disconnect from Cloud Service.");
                 AndroidHelper.UnbindTangoCloudService();
             }
-
-            AndroidHelper.UnbindTangoService();
         }
 
         /// <summary>
@@ -1421,6 +1421,9 @@ namespace Tango
         /// </summary>
         private void _ResetPermissionsFlags()
         {
+#if UNITY_EDITOR
+            m_requiredPermissions = PermissionsTypes.NONE;
+#else
             if (m_requiredPermissions == PermissionsTypes.NONE)
             {
                 m_requiredPermissions |= m_enableAreaDescriptions ? PermissionsTypes.AREA_LEARNING : PermissionsTypes.NONE;
@@ -1428,6 +1431,7 @@ namespace Tango
 
             // It is always required to rebind to the service.
             m_requiredPermissions |= PermissionsTypes.SERVICE_BOUND;
+#endif
         }
 
         /// <summary>
